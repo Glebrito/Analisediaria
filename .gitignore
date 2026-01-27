@@ -1,0 +1,85 @@
+# Credenciais e Secrets
+*.json
+bustling-day-459711-q8-e889589cda14.json
+.streamlit/secrets.toml
+secrets_example.toml
+streamlit_secrets_final.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Excel files (se não forem necessários)
+*.xlsx
+*.xls
+~$*.xlsx
+~$*.xls
+
+# PDF gerados (opcional)
+*.pdf
+
+# Arquivos de teste
+test_*.py
+*_test.py
