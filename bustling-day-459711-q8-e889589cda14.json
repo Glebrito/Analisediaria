@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "bustling-day-459711-q8",
+  "private_key_id": "e889589cda145b952ff334adda7e6c0e82a42f5f",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDbnVIn6Jrtcm/y\n/y959hgixEmeCkUSNuo49YDPR1gVou/cHJVZoc65q9u9vC1LDYXzeArhHSn9TZ/s\nA7J/zn6OxxcO4GOhK6Av03CMdWVhMRr0ufDJOYj2tqtp9y/2sgm428Dm9teKVGTZ\nLfBXYatT5Dk5J5ssU9Q7+bnQe1xw3rBrAsYtdLkez/9aHRc/mEAKOgeUIFtmweqy\nGXhRqMgc2VYJ4kSO9rRGpzHiKU/xhSHQiFhaqKyzMCJU7dXgxeVHW+5UJu2cu4sh\noULsMPVKARiHzZFfLLR41z2DQw6tLiKtORCUiZsLr2VL46sp2zUiSuaTGc9nJNOf\nj4c1pKMfAgMBAAECggEANltJA2G6Pv0tIkrxGFHGBYzp37kRAYIgFPsG58bz0V8j\n2Sol+SpofWJBIEQcPdBaEDntD2zlgLGe3I7JtoKIppQ2a9M0NacTneLKn6lK73R1\nBI+lPlkEQnRSFwc8kuXcLCoQI9qC3NUopOyO6UHeYwRA+ZmI+b7B8BpOWIDAD5tJ\nIWP/9eL/ZeWdRLeQ5zaFOwvcPGRU+O8ODf2iPsd4fh0TloK3s81rDVQcX+krtWxh\nlx3dnTb25o9j/D5Jn6EnPFZ0W0cnUX7n3xsaKf3XEiEQKRDqHwUmrGbq5gSPAl6p\nzdFcBNOK93OOLnuerTxfMVZ+FxRibuDE9fJ+l/hiCQKBgQD7aiFriZ6OVGIjQ6mT\niT+8aXOd+oIBCSomlhsl93l0wo41+6XAR7ku4r5G70CSDYEyi1WaHuWf9D3a1xLQ\nVZv39iScg2Zy7KHUF3fGnO5UPVQz09c3SwrLiL9nsoQ5yElmpjjY+d1KwNzv2MDg\nAAmVQ6RVBI+e7cdZsgFHgowUYwKBgQDfnrbQ5XmBqBZYihaw0h2LqvwNFPpC/P2f\nksIL5RY6WEOuSiPcojCtQncWOQkp/PMUSXvVdpqZQri6vNZWJMYLeAtzTyBMV3cT\nWTbtdxQGGiq4AZvOuXnuV6U0qpPLLGw4ZdUWaWSOXO5+UZIaAzccoZA+/fgWUbOm\nCwuInvVdFQKBgAnd5GngAMT9MszHfwQ3QrUWPl9Y0XlQ7sKM6YvX5oBaklI0ChE9\nv1rDs0v9X79boFJnfXiK9eANKdBI2Igsk+5rToyF66Ne/grg0OaOihvsPD28dpnI\n7CeIulpLezz5S0goBdseEz03zHPtQcSIu9eLzAs6HpjSJBy1C6/Ow8iZAoGAQMBz\njX+1NG8YsWCi+2aMOaI0RBF7+iPJyQg0+j7GtfRS/MfpJH0ufS0O0LeJSMg/FvPE\nUOZ8E773QNNneSBC3JVRM32JC7IT/91Ig3CEstOm5QtKM40Pmo10gBCYpS9i0t3h\n2xB/lp2gTaGPHcsqjTbXTvY5fTUBQSZXm6Lzx5UCgYEA7n85dfMh/yemxGTqs9eZ\n+ne6Xnd9MY3hTfFJ6ojCGPsUg8hlIACIq4oWm51XANEjO/rqOxBaHfyN/LPlNeOJ\nSTxDMYx90XaSdeSF/p8Yf9y+26pa5xD0rDY1UmABNISKwDPbdBxhnkfeGDSQKrYK\nX1dXn+4RkTwK3JRhkMSTHbE=\n-----END PRIVATE KEY-----\n",
+  "client_email": "analista-nat-luckreceptivo-702@bustling-day-459711-q8.iam.gserviceaccount.com",
+  "client_id": "114188369553621118271",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/analista-nat-luckreceptivo-702%40bustling-day-459711-q8.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
