@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import gspread
@@ -11,6 +11,32 @@ from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 import io
+
+# Função para carregar credenciais (Streamlit Cloud ou local)
+def get_google_credentials():
+    """Carrega credenciais do Google - Streamlit Secrets ou arquivo local"""
+    try:
+        # Tentar carregar do Streamlit Secrets (produção)
+        if hasattr(st, 'secrets') and 'gcp_service_account' in st.secrets:
+            return Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"],
+                scopes=['https://spreadsheets.google.com/feeds',
+                       'https://www.googleapis.com/auth/drive']
+            )
+    except:
+        pass
+    
+    # Fallback: arquivo local (desenvolvimento)
+    try:
+        return Credentials.from_service_account_file(
+            'bustling-day-459711-q8-e889589cda14.json',
+            scopes=['https://spreadsheets.google.com/feeds',
+                   'https://www.googleapis.com/auth/drive']
+        )
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar credenciais: {e}")
+        st.info("💡 Configure os secrets no Streamlit Cloud ou adicione o arquivo JSON localmente")
+        return None
 
 # Dicionário de meses
 meses = {
@@ -55,13 +81,9 @@ def ordenar_tipos_vendedor(tipos):
 def carregar_dados_google_sheets():
     try:
         # Configurar credenciais
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        
-        creds = Credentials.from_service_account_file(
-            'bustling-day-459711-q8-e889589cda14.json',
-            scopes=scope
-        )
+        creds = get_google_credentials()
+        if not creds:
+            return pd.DataFrame()
         
         client = gspread.authorize(creds)
         
@@ -83,13 +105,9 @@ def carregar_dados_google_sheets():
 def carregar_dados_vendas():
     try:
         # Configurar credenciais
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        
-        creds = Credentials.from_service_account_file(
-            'bustling-day-459711-q8-e889589cda14.json',
-            scopes=scope
-        )
+        creds = get_google_credentials()
+        if not creds:
+            return pd.DataFrame()
         
         client = gspread.authorize(creds)
         
@@ -111,13 +129,9 @@ def carregar_dados_vendas():
 def carregar_dados_paxs_in():
     try:
         # Configurar credenciais
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        
-        creds = Credentials.from_service_account_file(
-            'bustling-day-459711-q8-e889589cda14.json',
-            scopes=scope
-        )
+        creds = get_google_credentials()
+        if not creds:
+            return pd.DataFrame()
         
         client = gspread.authorize(creds)
         
@@ -140,13 +154,9 @@ def carregar_servicos_terceiros():
     """Carrega a lista de serviços terceirizados do Google Sheets"""
     try:
         # Configurar credenciais
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        
-        creds = Credentials.from_service_account_file(
-            'bustling-day-459711-q8-e889589cda14.json',
-            scopes=scope
-        )
+        creds = get_google_credentials()
+        if not creds:
+            return []
         
         client = gspread.authorize(creds)
         
@@ -186,13 +196,9 @@ def carregar_dados_vendedores():
     """Carrega dados de vendedores da aba Dados Vendedores para buscar comissões"""
     try:
         # Configurar credenciais
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        
-        creds = Credentials.from_service_account_file(
-            'bustling-day-459711-q8-e889589cda14.json',
-            scopes=scope
-        )
+        creds = get_google_credentials()
+        if not creds:
+            return pd.DataFrame()
         
         client = gspread.authorize(creds)
         
@@ -219,13 +225,9 @@ def carregar_dados_meta_diaria():
     """Carrega dados da aba Meta Diaria"""
     try:
         # Configurar credenciais
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        
-        creds = Credentials.from_service_account_file(
-            'bustling-day-459711-q8-e889589cda14.json',
-            scopes=scope
-        )
+        creds = get_google_credentials()
+        if not creds:
+            return pd.DataFrame()
         
         client = gspread.authorize(creds)
         
@@ -937,13 +939,9 @@ def gerar_pdf_comissao(vendedor, periodo_texto, dados_detalhes, dados_resumo, ti
 def carregar_dados_comissao():
     try:
         # Configurar credenciais
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        
-        creds = Credentials.from_service_account_file(
-            'bustling-day-459711-q8-e889589cda14.json',
-            scopes=scope
-        )
+        creds = get_google_credentials()
+        if not creds:
+            return pd.DataFrame()
         
         client = gspread.authorize(creds)
         
