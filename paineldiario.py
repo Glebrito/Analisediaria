@@ -11,6 +11,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 import io
+from funcao_vendas_luck_com_adic_ai import calcular_vendas_luck_com_adicionais_all_inclusive
 
 # Função para carregar credenciais (Streamlit Cloud ou local)
 def get_google_credentials():
@@ -1055,6 +1056,97 @@ def calcular_vendas_luck_sem_adicionais(df_vendas, vendedores_list, dia_inicial,
         
     except Exception as e:
         st.error(f"Erro ao calcular vendas Luck sem adicionais: {e}")
+        return {}
+
+# Função para calcular Vendas Luck Com Adicionais por vendedor (para Transferistas e Guias)
+def calcular_vendas_luck_com_adicionais(df_vendas, vendedores_list, dia_inicial, mes_inicial, ano_inicial, dia_final, mes_final, ano_final):
+    """
+    Calcula as vendas Luck Com Adicionais para Transferistas e Guias no período especificado
+    - Usa coluna "Valor Final"
+    - Exclui vendas com All Inclusive = "Sim"
+    - Inclui apenas Tipo de Serviço = "Luck"
+    """
+    try:
+        if df_vendas.empty:
+            return {}
+        
+        # Verificar se existem as colunas necessárias
+        colunas_alternativas = {
+            'dia': ['dia', 'Dia', 'DIA'],
+            'mês': ['mês', 'Mês', 'MES', 'Mes'],
+            'ano': ['ano', 'Ano', 'ANO'],
+            'vendedor': ['Vendedor', 'vendedor', 'VENDEDOR'],
+            'valor_final': ['Valor Final', 'valor final', 'VALOR FINAL'],
+            'tipo_servico': ['Tipo de Serviço', 'tipo de serviço', 'TIPO DE SERVIÇO', 'Tipo de Servico', 'Serviço Buggy', 'Servico Buggy'],
+            'all_inclusive': ['All Inclusive', 'all inclusive', 'ALL INCLUSIVE']
+        }
+        
+        # Mapear colunas existentes
+        colunas_mapeadas = {}
+        for campo, alternativas in colunas_alternativas.items():
+            for alt in alternativas:
+                if alt in df_vendas.columns:
+                    colunas_mapeadas[campo] = alt
+                    break
+        
+        # Verificar se todas as colunas foram encontradas
+        if len(colunas_mapeadas) < 7:
+            return {}
+        
+        # Converter colunas para tipos adequados
+        df_vendas[colunas_mapeadas['dia']] = pd.to_numeric(df_vendas[colunas_mapeadas['dia']], errors='coerce')
+        df_vendas[colunas_mapeadas['ano']] = pd.to_numeric(df_vendas[colunas_mapeadas['ano']], errors='coerce')
+        
+        # VALOR FINAL - limpar formatação antes de converter
+        df_vendas['valor_final_com_adic_limpo'] = df_vendas[colunas_mapeadas['valor_final']].astype(str)
+        df_vendas['valor_final_com_adic_limpo'] = df_vendas['valor_final_com_adic_limpo'].str.replace('R$', '', regex=False)
+        df_vendas['valor_final_com_adic_limpo'] = df_vendas['valor_final_com_adic_limpo'].str.replace('.', '', regex=False)
+        df_vendas['valor_final_com_adic_limpo'] = df_vendas['valor_final_com_adic_limpo'].str.replace(',', '.', regex=False)
+        df_vendas['valor_final_com_adic_limpo'] = df_vendas['valor_final_com_adic_limpo'].str.strip()
+        df_vendas['valor_final_com_adic_limpo'] = pd.to_numeric(df_vendas['valor_final_com_adic_limpo'], errors='coerce').fillna(0)
+        
+        # MÊS - converter nomes de meses para números
+        meses_para_numeros = {
+            'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 
+            'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8,
+            'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12,
+            'Marco': 3, 'Decembro': 12
+        }
+        
+        df_vendas['mes_numero_com_adic'] = df_vendas[colunas_mapeadas['mês']].map(meses_para_numeros)
+        
+        # Filtrar por período
+        mask_periodo = (
+            (df_vendas[colunas_mapeadas['ano']] >= ano_inicial) & 
+            (df_vendas[colunas_mapeadas['ano']] <= ano_final) &
+            (df_vendas['mes_numero_com_adic'] >= mes_inicial) & 
+            (df_vendas['mes_numero_com_adic'] <= mes_final) &
+            (df_vendas[colunas_mapeadas['dia']] >= dia_inicial) & 
+            (df_vendas[colunas_mapeadas['dia']] <= dia_final)
+        )
+        
+        df_periodo = df_vendas[mask_periodo]
+        
+        # Filtrar por Luck + All Inclusive = "Não" (exclui "Sim")
+        mask_luck_com_adic = (
+            (df_periodo[colunas_mapeadas['tipo_servico']] == 'Luck') & 
+            (df_periodo[colunas_mapeadas['all_inclusive']] == 'Não')
+        )
+        
+        df_luck_com_adic = df_periodo[mask_luck_com_adic]
+        
+        # Calcular soma por vendedor
+        vendas_por_vendedor = {}
+        
+        for vendedor in vendedores_list:
+            vendedor_dados = df_luck_com_adic[df_luck_com_adic[colunas_mapeadas['vendedor']] == vendedor]
+            soma = vendedor_dados['valor_final_com_adic_limpo'].sum()
+            vendas_por_vendedor[vendedor] = soma
+        
+        return vendas_por_vendedor
+        
+    except Exception as e:
+        st.error(f"Erro ao calcular Vendas Luck Com Adicionais: {e}")
         return {}
 
 # Função para calcular Vendas Luck Sem Adicionais All Inclusive por vendedor
@@ -2484,6 +2576,25 @@ if st.session_state.get('dados_carregados', False):
                                             except Exception as e:
                                                 st.error(f"Erro ao calcular Vendas Luck Sem Adicionais: {e}")
                                         
+                                        # Adicionar coluna "Vendas Luck Com Adicionais" apenas para Transferistas e Guias
+                                        if tipo in ['Transferistas', 'Guias'] and not df_vendas.empty:
+                                            try:
+                                                vendedores_list = df_display['Vendedor'].tolist()
+                                                vendas_luck_com_adic = calcular_vendas_luck_com_adicionais(
+                                                    df_vendas, vendedores_list, dia_inicial, mes_inicial, ano_inicial, dia_final, mes_final, ano_final
+                                                )
+                                                
+                                                # Adicionar coluna ao dataframe
+                                                df_display['Vendas Luck Com Adicionais'] = df_display['Vendedor'].map(vendas_luck_com_adic).fillna(0)
+                                                
+                                                # Formatar valores como moeda
+                                                df_display['Vendas Luck Com Adicionais'] = df_display['Vendas Luck Com Adicionais'].apply(
+                                                    lambda x: f"R$ {x:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                                                )
+                                                
+                                            except Exception as e:
+                                                st.error(f"Erro ao calcular Vendas Luck Com Adicionais: {e}")
+                                        
                                         # Adicionar coluna "Paxs In" apenas para Transferistas e Guias
                                         if tipo in ['Transferistas', 'Guias'] and not df_paxs_in.empty:
                                             try:
@@ -2531,6 +2642,34 @@ if st.session_state.get('dados_carregados', False):
                                                     
                                                 except Exception as e:
                                                     st.error(f"Erro ao calcular Ticket Médio: {e}")
+                                            
+                                            # Adicionar coluna "Ticket Médio Com Adicionais" apenas para Transferistas e Guias
+                                            if 'Vendas Luck Com Adicionais' in df_display.columns and 'Paxs In' in df_display.columns:
+                                                try:
+                                                    def calcular_ticket_medio_com_adicionais(row):
+                                                        try:
+                                                            # Converter Vendas Luck Com Adicionais para float
+                                                            vendas_str = str(row['Vendas Luck Com Adicionais']).replace('R$', '').replace('.', '').replace(',', '.').strip()
+                                                            vendas_float = float(vendas_str) if vendas_str not in ['', '0', '0,00'] else 0
+                                                            
+                                                            # Converter Paxs In para float
+                                                            paxs_str = str(row['Paxs In']).replace(',', '.').strip()
+                                                            paxs_float = float(paxs_str) if paxs_str not in ['', '0', '0,0'] else 0
+                                                            
+                                                            # Calcular ticket médio com adicionais
+                                                            if paxs_float > 0:
+                                                                ticket_medio_com_adic = vendas_float / paxs_float
+                                                                return f"R$ {ticket_medio_com_adic:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                                                            else:
+                                                                return "R$ 0,00"
+                                                        except:
+                                                            return "R$ 0,00"
+                                                    
+                                                    # Aplicar cálculo de ticket médio com adicionais
+                                                    df_display['Ticket Médio Com Adicionais'] = df_display.apply(calcular_ticket_medio_com_adicionais, axis=1)
+                                                    
+                                                except Exception as e:
+                                                    st.error(f"Erro ao calcular Ticket Médio Com Adicionais: {e}")
                                             
                                             # Adicionar coluna "Meta" apenas para Transferistas e Guias
                                             try:
@@ -2622,17 +2761,32 @@ if st.session_state.get('dados_carregados', False):
                                                 total_vendas = df_display['Vendas Luck Sem Adicionais'].apply(extrair_valor_vendas).sum()
                                                 total_vendas_formatado = f"R$ {total_vendas:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                                                 
-                                                col1, col2, col3, col4, col5 = st.columns(5)
+                                                # Calcular total de Vendas Luck Com Adicionais
+                                                total_vendas_com_adic = 0
+                                                total_vendas_com_adic_formatado = "R$ 0,00"
+                                                if 'Vendas Luck Com Adicionais' in df_display.columns:
+                                                    total_vendas_com_adic = df_display['Vendas Luck Com Adicionais'].apply(extrair_valor_vendas).sum()
+                                                    total_vendas_com_adic_formatado = f"R$ {total_vendas_com_adic:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                                                
+                                                col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
                                                 
                                                 with col1:
                                                     st.markdown(f"""
                                                     <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; margin-top: 20px;">
-                                                        <h3 style="margin: 0; color: #0e1117;">💰 Total de Vendas Luck Sem Adicionais</h3>
+                                                        <h3 style="margin: 0; color: #0e1117;">💰 Total Vendas Luck Sem Adicionais</h3>
                                                         <h2 style="margin: 10px 0 0 0; color: #1f77b4;">{total_vendas_formatado}</h2>
                                                     </div>
                                                     """, unsafe_allow_html=True)
                                                 
                                                 with col2:
+                                                    st.markdown(f"""
+                                                    <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                                                        <h3 style="margin: 0; color: #0e1117;">💰 Total Vendas Luck Com Adicionais</h3>
+                                                        <h2 style="margin: 10px 0 0 0; color: #2ca02c;">{total_vendas_com_adic_formatado}</h2>
+                                                    </div>
+                                                    """, unsafe_allow_html=True)
+                                                
+                                                with col3:
                                                     # Calcular total de Paxs In
                                                     if 'Paxs In' in df_display.columns:
                                                         try:
@@ -2657,7 +2811,7 @@ if st.session_state.get('dados_carregados', False):
                                                         except Exception as e:
                                                             st.error(f"Erro ao calcular total de Paxs In: {e}")
                                                 
-                                                with col3:
+                                                with col4:
                                                     # Calcular Ticket Médio
                                                     if 'Paxs In' in df_display.columns:
                                                         try:
@@ -2676,7 +2830,7 @@ if st.session_state.get('dados_carregados', False):
                                                         except Exception as e:
                                                             st.error(f"Erro ao calcular Ticket Médio: {e}")
                                                 
-                                                with col4:
+                                                with col5:
                                                     # Pegar valor da Meta (primeiro valor da coluna)
                                                     if 'Meta' in df_display.columns:
                                                         try:
@@ -2692,7 +2846,7 @@ if st.session_state.get('dados_carregados', False):
                                                         except Exception as e:
                                                             st.error(f"Erro ao exibir Meta: {e}")
                                                 
-                                                with col5:
+                                                with col6:
                                                     # Calcular Alcance da Meta (Ticket Médio / Meta)
                                                     if 'Meta' in df_display.columns and 'Paxs In' in df_display.columns:
                                                         try:
@@ -2714,6 +2868,25 @@ if st.session_state.get('dados_carregados', False):
                                                             """, unsafe_allow_html=True)
                                                         except Exception as e:
                                                             st.error(f"Erro ao calcular Alcance da Meta: {e}")
+                                                
+                                                with col7:
+                                                    # Calcular Ticket Médio Com Adicionais (Total Vendas Luck Com Adicionais / Total Paxs In)
+                                                    if 'Paxs In' in df_display.columns and 'Vendas Luck Com Adicionais' in df_display.columns:
+                                                        try:
+                                                            if total_paxs > 0:
+                                                                ticket_medio_com_adic = total_vendas_com_adic / total_paxs
+                                                                ticket_medio_com_adic_formatado = f"R$ {ticket_medio_com_adic:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                                                            else:
+                                                                ticket_medio_com_adic_formatado = "R$ 0,00"
+                                                            
+                                                            st.markdown(f"""
+                                                            <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                                                                <h3 style="margin: 0; color: #0e1117;">🎟️ Ticket Médio Com Adicionais</h3>
+                                                                <h2 style="margin: 10px 0 0 0; color: #2ca02c;">{ticket_medio_com_adic_formatado}</h2>
+                                                            </div>
+                                                            """, unsafe_allow_html=True)
+                                                        except Exception as e:
+                                                            st.error(f"Erro ao calcular Ticket Médio Com Adicionais: {e}")
                                             except Exception as e:
                                                 st.error(f"Erro ao calcular totais: {e}")
                                         
@@ -2744,6 +2917,25 @@ if st.session_state.get('dados_carregados', False):
                                                     
                                                 except Exception as e:
                                                     st.error(f"Erro ao calcular Vendas Luck All Inclusive: {e}")
+                                            
+                                            # Adicionar coluna "Vendas Luck Com Adicionais All Inclusive"
+                                            if not df_vendas.empty:
+                                                try:
+                                                    vendedores_list = df_simples['Vendedor'].tolist()
+                                                    vendas_luck_com_adic_ai = calcular_vendas_luck_com_adicionais_all_inclusive(
+                                                        df_vendas, vendedores_list, dia_inicial, mes_inicial, ano_inicial, dia_final, mes_final, ano_final
+                                                    )
+                                                    
+                                                    # Adicionar coluna ao dataframe
+                                                    df_simples['Vendas Luck Com Adicionais All Inclusive'] = df_simples['Vendedor'].map(vendas_luck_com_adic_ai).fillna(0)
+                                                    
+                                                    # Formatar valores como moeda
+                                                    df_simples['Vendas Luck Com Adicionais All Inclusive'] = df_simples['Vendas Luck Com Adicionais All Inclusive'].apply(
+                                                        lambda x: f"R$ {x:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                                                    )
+                                                    
+                                                except Exception as e:
+                                                    st.error(f"Erro ao calcular Vendas Luck Com Adicionais All Inclusive: {e}")
                                             
                                             # Adicionar coluna "Paxs In All Inclusive"
                                             if not df_paxs_in.empty:
@@ -2788,10 +2980,36 @@ if st.session_state.get('dados_carregados', False):
                                                     
                                                     # Aplicar cálculo de ticket médio All Inclusive
                                                     df_simples['Ticket Médio All Inclusive'] = df_simples.apply(calcular_ticket_medio_ai, axis=1)
-                                                    
                                                 except Exception as e:
                                                     st.error(f"Erro ao calcular Ticket Médio All Inclusive: {e}")
-                                            
+
+                                            # Adicionar coluna "Ticket Médio All Inclusive com Adicionais"
+                                            if 'Vendas Luck Com Adicionais All Inclusive' in df_simples.columns and 'Paxs In All Inclusive' in df_simples.columns:
+                                                try:
+                                                    def calcular_ticket_medio_com_adic_ai(row):
+                                                        try:
+                                                            # Converter Vendas Luck Com Adicionais All Inclusive para float
+                                                            vendas_str = str(row['Vendas Luck Com Adicionais All Inclusive']).replace('R$', '').replace('.', '').replace(',', '.').strip()
+                                                            vendas = float(vendas_str) if vendas_str else 0
+                                                            
+                                                            # Converter Paxs In All Inclusive para float
+                                                            paxs_str = str(row['Paxs In All Inclusive']).replace(',', '.').strip()
+                                                            paxs = float(paxs_str) if paxs_str else 0
+                                                            
+                                                            # Calcular ticket médio com adicionais All Inclusive
+                                                            if paxs > 0:
+                                                                ticket = vendas / paxs
+                                                                return f"R$ {ticket:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                                                            else:
+                                                                return "R$ 0,00"
+                                                        except:
+                                                            return "R$ 0,00"
+                                                    
+                                                    # Aplicar cálculo de ticket médio com adicionais All Inclusive
+                                                    df_simples['Ticket Médio All Inclusive com Adicionais'] = df_simples.apply(calcular_ticket_medio_com_adic_ai, axis=1)
+                                                except Exception as e:
+                                                    st.error(f"Erro ao calcular Ticket Médio All Inclusive com Adicionais: {e}")
+
                                             # Adicionar coluna "Meta All Inclusive" apenas para Transferistas e Guias
                                             try:
                                                 def buscar_meta_ai_por_vendedor(row):
@@ -2874,6 +3092,38 @@ if st.session_state.get('dados_carregados', False):
                                                     globals()['premiacao_ai_por_vendedor'] = dict(zip(df_simples['Vendedor'], df_simples['Premiação All Inclusive']))
                                                 except Exception as e:
                                                     st.error(f"Erro ao calcular Premiação All Inclusive: {e}")
+                                            # Reordenar colunas para colocar "Ticket Médio All Inclusive com Adicionais" ao lado de "Ticket Médio All Inclusive"
+                                            colunas_ordenadas = ['Vendedor', 'Tipo de Vendedor']
+                                            
+                                            # Adicionar colunas de vendas
+                                            if 'Vendas Luck Sem Adicionais All Inclusive' in df_simples.columns:
+                                                colunas_ordenadas.append('Vendas Luck Sem Adicionais All Inclusive')
+                                            if 'Vendas Luck Com Adicionais All Inclusive' in df_simples.columns:
+                                                colunas_ordenadas.append('Vendas Luck Com Adicionais All Inclusive')
+                                            
+                                            # Adicionar Paxs In
+                                            if 'Paxs In All Inclusive' in df_simples.columns:
+                                                colunas_ordenadas.append('Paxs In All Inclusive')
+                                            
+                                            # Adicionar Ticket Médio e Ticket Médio com Adicionais (lado a lado)
+                                            if 'Ticket Médio All Inclusive' in df_simples.columns:
+                                                colunas_ordenadas.append('Ticket Médio All Inclusive')
+                                            if 'Ticket Médio All Inclusive com Adicionais' in df_simples.columns:
+                                                colunas_ordenadas.append('Ticket Médio All Inclusive com Adicionais')
+                                            
+                                            # Adicionar Meta e Alcance
+                                            if 'Meta All Inclusive' in df_simples.columns:
+                                                colunas_ordenadas.append('Meta All Inclusive')
+                                            if 'Alcance de Meta All Inclusive' in df_simples.columns:
+                                                colunas_ordenadas.append('Alcance de Meta All Inclusive')
+                                            
+                                            # Adicionar Premiação (apenas para Transferistas)
+                                            if 'Premiação All Inclusive' in df_simples.columns:
+                                                colunas_ordenadas.append('Premiação All Inclusive')
+                                            
+                                            # Reordenar DataFrame
+                                            df_simples = df_simples[colunas_ordenadas]
+                                            
                                             st.write(f"**Total de vendedores:** {len(df_simples)}")
                                             # Mostrar grid simplificado
                                             def highlight_alcance_meta_ai(row):
@@ -2916,7 +3166,7 @@ if st.session_state.get('dados_carregados', False):
                                                     total_vendas_ai = df_simples['Vendas Luck Sem Adicionais All Inclusive'].apply(extrair_valor_vendas_ai).sum()
                                                     total_vendas_ai_formatado = f"R$ {total_vendas_ai:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                                                     
-                                                    col1_ai, col2_ai, col3_ai, col4_ai, col5_ai = st.columns(5)
+                                                    col1_ai, col2_ai, col3_ai, col4_ai, col5_ai, col6_ai = st.columns(6)
                                                     
                                                     with col1_ai:
                                                         st.markdown(f"""
@@ -2927,6 +3177,22 @@ if st.session_state.get('dados_carregados', False):
                                                         """, unsafe_allow_html=True)
                                                     
                                                     with col2_ai:
+                                                        # Calcular total de Vendas Luck Com Adicionais All Inclusive
+                                                        if 'Vendas Luck Com Adicionais All Inclusive' in df_simples.columns:
+                                                            try:
+                                                                total_vendas_com_adic_ai = df_simples['Vendas Luck Com Adicionais All Inclusive'].apply(extrair_valor_vendas_ai).sum()
+                                                                total_vendas_com_adic_ai_formatado = f"R$ {total_vendas_com_adic_ai:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                                                                
+                                                                st.markdown(f"""
+                                                                <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                                                                    <h3 style="margin: 0; color: #0e1117;">💰 Total de Vendas Luck Com Adicionais All Inclusive</h3>
+                                                                    <h2 style="margin: 10px 0 0 0; color: #2ca02c;">{total_vendas_com_adic_ai_formatado}</h2>
+                                                                </div>
+                                                                """, unsafe_allow_html=True)
+                                                            except Exception as e:
+                                                                st.error(f"Erro ao calcular total de Vendas Luck Com Adicionais All Inclusive: {e}")
+                                                    
+                                                    with col3_ai:
                                                         # Calcular total de Paxs In All Inclusive
                                                         if 'Paxs In All Inclusive' in df_simples.columns:
                                                             try:
@@ -2951,7 +3217,7 @@ if st.session_state.get('dados_carregados', False):
                                                             except Exception as e:
                                                                 st.error(f"Erro ao calcular total de Paxs In All Inclusive: {e}")
                                                     
-                                                    with col3_ai:
+                                                    with col4_ai:
                                                         # Calcular Ticket Médio All Inclusive
                                                         if 'Paxs In All Inclusive' in df_simples.columns:
                                                             try:
@@ -2970,7 +3236,7 @@ if st.session_state.get('dados_carregados', False):
                                                             except Exception as e:
                                                                 st.error(f"Erro ao calcular Ticket Médio All Inclusive: {e}")
                                                     
-                                                    with col4_ai:
+                                                    with col5_ai:
                                                         # Pegar valor da Meta All Inclusive (primeiro valor da coluna)
                                                         if 'Meta All Inclusive' in df_simples.columns:
                                                             try:
@@ -2986,7 +3252,7 @@ if st.session_state.get('dados_carregados', False):
                                                             except Exception as e:
                                                                 st.error(f"Erro ao exibir Meta All Inclusive: {e}")
                                                     
-                                                    with col5_ai:
+                                                    with col6_ai:
                                                         # Calcular Alcance da Meta All Inclusive (Ticket Médio AI / Meta AI)
                                                         if 'Meta All Inclusive' in df_simples.columns and 'Paxs In All Inclusive' in df_simples.columns:
                                                             try:
@@ -3010,6 +3276,31 @@ if st.session_state.get('dados_carregados', False):
                                                                 st.error(f"Erro ao calcular Alcance da Meta All Inclusive: {e}")
                                                 except Exception as e:
                                                     st.error(f"Erro ao calcular total de vendas All Inclusive: {e}")
+
+                                                # Adicionar nova linha com cartão "Ticket Médio Com Adicionais All Inclusive"
+                                                st.markdown("---")
+                                                
+                                                col_ticket_com_adic = st.columns(1)[0]
+                                                
+                                                with col_ticket_com_adic:
+                                                    # Calcular Ticket Médio Com Adicionais All Inclusive
+                                                    # (Total Vendas Luck Com Adicionais All Inclusive / Total Paxs In All Inclusive)
+                                                    if 'Vendas Luck Com Adicionais All Inclusive' in df_simples.columns and 'Paxs In All Inclusive' in df_simples.columns:
+                                                        try:
+                                                            if total_paxs_ai > 0 and 'total_vendas_com_adic_ai' in locals():
+                                                                ticket_medio_com_adic_ai = total_vendas_com_adic_ai / total_paxs_ai
+                                                                ticket_medio_com_adic_ai_formatado = f"R$ {ticket_medio_com_adic_ai:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                                                            else:
+                                                                ticket_medio_com_adic_ai_formatado = "R$ 0,00"
+                                                            
+                                                            st.markdown(f"""
+                                                            <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                                                                <h3 style="margin: 0; color: #0e1117;">🎟️ Ticket Médio Com Adicionais All Inclusive</h3>
+                                                                <h2 style="margin: 10px 0 0 0; color: #2ca02c;">{ticket_medio_com_adic_ai_formatado}</h2>
+                                                            </div>
+                                                            """, unsafe_allow_html=True)
+                                                        except Exception as e:
+                                                            st.error(f"Erro ao calcular Ticket Médio Com Adicionais All Inclusive: {e}")
 
                                             # ========== TERCEIRO GRID: COMISSÃO ==========
                                             st.markdown("---")
