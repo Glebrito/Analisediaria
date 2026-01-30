@@ -1,10 +1,21 @@
+# Streamlit e dependências principais
 streamlit>=1.28.0
 pandas>=2.0.0
-gspread>=5.10.0
-google-auth>=2.20.0
-google-auth-oauthlib>=1.0.0
-google-auth-httplib2>=0.1.0
+numpy>=1.24.0
+
+# Google Sheets e autenticação
+gspread>=5.11.0
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.1.1
+
+# Geração de PDF
 reportlab>=4.0.0
+
+# Gráficos e visualização
 matplotlib>=3.7.0
-Pillow>=10.0.0
+plotly>=5.17.0
+
+# Utilitários
+python-dateutil>=2.8.2
 openpyxl>=3.1.0
